@@ -1,0 +1,2104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Neomorphism Game</title>
+  <style>
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: var(--bg-color);
+      font-family: Arial, sans-serif;
+      color: var(--text-color);
+    }
+
+    .scene {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100vh;
+    }
+
+    #mainMenuButtons {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+
+    #startButton,
+    #darkModeButton {
+      padding: 20px;
+      background-color: var(--bg-color);
+      border: none;
+      border-radius: 12px;
+      font-size: 20px;
+      color: var(--text-color);
+      cursor: pointer;
+      box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light);
+      margin: 10px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    #startButton:hover,
+    #darkModeButton:hover {
+      background-color: var(--hover-bg-color);
+      color: var(--hover-text-color);
+    }
+
+    #playArea {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    #devOptions {
+      display: flex;
+      flex-direction: column;
+      margin-right: 20px;
+    }
+
+    #gameCanvas {
+      display: block !important;
+      /* Make sure the canvas is visible */
+    }
+
+    #gameOverText {
+      display: none;
+      font-size: 36px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-align: center;
+      color: var(--text-color);
+      background-color: var(--bg-color);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light);
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      /* Added z-index to bring text in front of the canvas */
+    }
+
+    #mainMenuDevOptions {
+      display: flex;
+      flex-direction: column;
+      align-items: normal;
+      justify-content: left;
+      margin-top: 20px;
+    }
+
+    .devOption {
+      position: relative;
+      display: flex;
+      align-items: center;
+      margin: 20px 0;
+    }
+
+    .devOptionText {
+      margin-left: 20px;
+      /* Adjust the distance from the radial button */
+      font-size: 18px;
+      color: var(--text-color);
+      text-shadow: 1px 1px 2px var(--shadow-light), -1px -1px 2px var(--shadow-dark);
+    }
+
+    .centerCircle {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background-color: #aaa;
+      transition: background-color 0.3s ease;
+    }
+
+    .outerRing {
+      position: absolute;
+      left: -10px;
+      width: 35px;
+      /* Make slightly larger than center circle */
+      height: 35px;
+      border-radius: 50%;
+      box-shadow:
+        8px 8px 16px rgba(0, 0, 0, 0.2),
+        /* Drop shadow */
+        -8px -8px 16px rgba(255, 255, 255, 0.4);
+      /* Highlight shadow with reduced brightness */
+      transition: box-shadow 0.3s ease;
+    }
+
+
+
+    .devOption.active .centerCircle {
+      background-color: #6f9;
+    }
+
+    .devOption.active .outerRing {
+      box-shadow: inset 4px 4px 8px var(--inner-shadow-color), inset -4px -4px 8px var(--inner-highlight-color);
+    }
+
+    #playArea #devOptions {
+      display: flex;
+      flex-direction: column;
+      margin-right: 20px;
+    }
+
+    #playArea .devOption {
+      display: flex;
+      align-items: center;
+      margin: 20px 0;
+    }
+
+    #playArea .devOptionText {
+      margin-right: 20px;
+      /* Adjust distance from the radial button */
+      font-size: 18px;
+      color: var(--text-color);
+      text-shadow: 1px 1px 2px var(--shadow-light), -1px -1px 2px var(--shadow-dark);
+    }
+
+    .color-picker-container {
+      position: relative;
+      width: 400px;
+      height: 40px;
+      background: linear-gradient(90deg,
+          hsl(0, 100%, 80%) 0%,
+          hsl(30, 100%, 80%) 16%,
+          hsl(60, 100%, 80%) 32%,
+          hsl(120, 100%, 80%) 48%,
+          hsl(180, 100%, 80%) 64%,
+          hsl(240, 100%, 80%) 80%,
+          hsl(300, 100%, 80%) 100%);
+      border-radius: 20px;
+      z-index: 1;
+
+      /* Neumorphic Inset Shadow */
+      box-shadow: inset 0px 3px 8px rgba(0, 0, 0, 1.2),
+        /* Dark inner shadow */
+        inset 0px -8px 8px rgba(255, 255, 255, 0.4)
+        /* Light inner shadow */
+    }
+
+    .glow-section {
+      position: absolute;
+      top: -5px;
+      /* Slightly above the bar */
+      height: 50px;
+      /* Smaller spread */
+      border-radius: 20px;
+      z-index: 0;
+      filter: blur(8px);
+      /* Reduced blur for a more subtle effect */
+    }
+
+    /* Each section glow */
+    .glow-red {
+      width: 16%;
+      left: 0;
+      background-color: rgba(255, 0, 0, 0.3);
+      /* Calmer glow intensity */
+    }
+
+    .glow-orange {
+      width: 16%;
+      left: 14%;
+      background-color: rgba(255, 165, 0, 0.3);
+    }
+
+    .glow-yellow {
+      width: 16%;
+      left: 28%;
+      background-color: rgba(255, 255, 0, 0.3);
+    }
+
+    .glow-green {
+      width: 16%;
+      left: 42%;
+      background-color: rgba(0, 255, 0, 0.3);
+    }
+
+    .glow-cyan {
+      width: 16%;
+      left: 56%;
+      background-color: rgba(0, 255, 255, 0.3);
+    }
+
+    .glow-blue {
+      width: 16%;
+      left: 70%;
+      background-color: rgba(0, 0, 255, 0.3);
+    }
+
+    .glow-purple {
+      width: 16%;
+      left: 84%;
+      background-color: rgba(255, 0, 255, 0.3);
+    }
+
+    .color-circle {
+      position: absolute;
+      top: 3px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 4px solid white;
+      background-color: #fff;
+      cursor: pointer;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+      z-index: 2;
+    }
+
+    canvas {
+      border-radius: 20px;
+    }
+  </style>
+
+
+
+</head>
+
+<body>
+  <div id="mainMenu" class="scene">
+    <div id="mainMenuButtons">
+      <button id="startButton">Start Game</button>
+      <button id="darkModeButton">Dark Mode</button>
+    </div>
+    <div id="mainMenuDevOptions">
+      <div class="devOption" id="devOption1">
+        <div class="centerCircle"></div>
+        <div class="outerRing"></div>
+        <span class="devOptionText">Enemy Shoot</span> <!-- Updated label -->
+      </div>
+      <div class="devOption" id="devOption2">
+        <div class="centerCircle"></div>
+        <div class="outerRing"></div>
+        <span class="devOptionText">Enemy Move</span>
+      </div>
+      <div class="color-picker-container" id="colorPicker">
+        <!-- Glow sections -->
+        <div class="glow-section glow-red"></div>
+        <div class="glow-section glow-orange"></div>
+        <div class="glow-section glow-yellow"></div>
+        <div class="glow-section glow-green"></div>
+        <div class="glow-section glow-cyan"></div>
+        <div class="glow-section glow-blue"></div>
+        <div class="glow-section glow-purple"></div>
+        <div class="color-circle" id="color-circle"></div>
+      </div>
+    </div>
+  </div>
+  <div id="playScreen" class="scene" style="display: none;">
+    <div id="gameOverText">Game Over</div>
+    <div id="playArea">
+      <div id="devOptions">
+        <div class="devOption" id="devOption1Play">
+          <div class="centerCircle"></div>
+          <div class="outerRing"></div>
+          <span class="devOptionText">Enemy Shoot</span> <!-- Updated label -->
+        </div>
+        <div class="devOption" id="devOption2Play">
+          <div class="centerCircle"></div>
+          <div class="outerRing"></div>
+          <span class="devOptionText">Enemy Move</span>
+        </div>
+      </div>
+      <canvas id="gameCanvas" width="800" height="600" style="border-radius: 20px;"></canvas>
+    </div>
+  </div>
+
+
+  <script>
+
+    const mainMenu = document.getElementById('mainMenu');
+    const playScreen = document.getElementById('playScreen');
+    const startButton = document.getElementById('startButton');
+    const darkModeButton = document.getElementById('darkModeButton');
+    const gameOverText = document.getElementById('gameOverText');
+    const canvas = document.getElementById('gameCanvas');
+    const devOption1Play = document.getElementById('devOption1Play');
+    const devOption2Play = document.getElementById('devOption2Play');
+    const colorPicker = document.getElementById('colorPicker');
+    const colorRing = document.getElementById('colorRing');
+
+    let firstButtonPress_ = false;
+    let isDragging = false;
+    let lastTime_ = performance.now();
+    let ctx; // Declare ctx here
+    let player = {
+      x: 100,
+      y: 100,
+      size: 30,
+      speed: 2,
+      morphed: false,
+      morphSpeed: 4,
+      color: '#FFF0B3'  // Default initial color
+    };
+    let enemies = [];
+    let projectiles;
+    let keys = {};
+    let morphToggled = false;
+    let gameRunning = false;
+    let shootCooldown = 0;
+    const shootCooldownMax = 30;
+    let isDarkMode = true;
+    let centerX, centerY;
+    let shatterParticles = [];
+    let ripples = [];  // Array to hold ripple effects
+    let devOptionsState = {
+      devOption1Active: false,
+      devOption2Active: false,
+    };
+    let playerParticles = [];
+    let cameraX = 0;
+    let cameraY = 0;
+    const smoothness = 0.08;  // The lower the value, the smoother the camera
+
+    let vignetteOpacity_ = 1.0;  // Initial opacity of the vignette
+    let targetOpacity_ = 0.4;    // Target opacity to lerp to
+    let vignetteCenterX_ = canvas.width / 2;
+    let vignetteCenterY_ = canvas.height / 2;
+    const vignetteSmoothness = 0.09; // Adjust this value for smoothness
+
+    let reloadCircle = {
+      active: false,
+      angle: 0  // Angle of rotation around the player
+    };
+
+    let flashOnce = false;
+    let flashInterval = 200; // Flash interval in milliseconds
+    let flashDuration = 500; // Total duration of the flash effect in milliseconds
+    let flashStartTime = 0; // Track when the flash started
+    let shouldFlashReloadBar = false; // Flag to control when the reload bar should flash
+
+    // Modify the obstacles array to add ramp direction
+    let obstacles = [
+      { x: 200, y: 150, width: 100, height: 50, radius: 15, ramp: 'left' },  // Example obstacle with ramp on the left
+      { x: 500, y: 400, width: 120, height: 60, radius: 20, ramp: 'right' },
+      { x: 300, y: 250, width: 80, height: 80, radius: 10, ramp: 'bottom' }
+    ];
+
+    // Reference the existing color circle instead of creating a new one
+    const colorCircle = document.getElementById('color-circle');
+
+
+    colorCircle.addEventListener('mousedown', (e) => {
+      isDragging = true;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        let pickerRect = colorPicker.getBoundingClientRect();
+        let x = e.clientX - pickerRect.left - colorCircle.offsetWidth / 2;
+
+        // Keep the circle within the bar's bounds
+        if (x < 0) x = 0;
+        if (x > pickerRect.width - colorCircle.offsetWidth) x = pickerRect.width - colorCircle.offsetWidth;
+
+        colorCircle.style.left = `${x}px`;
+
+        // Synchronize gradient stops in JS with CSS
+        let context = document.createElement('canvas').getContext('2d');
+        context.canvas.width = pickerRect.width;
+        context.canvas.height = 1;
+        let gradient = context.createLinearGradient(0, 0, pickerRect.width, 0);
+
+        // Pastel color stops (ensure these match the CSS exactly)
+        gradient.addColorStop(0, 'hsl(0, 100%, 80%)');
+        gradient.addColorStop(0.16, 'hsl(30, 100%, 80%)');
+        gradient.addColorStop(0.32, 'hsl(60, 100%, 80%)');
+        gradient.addColorStop(0.48, 'hsl(120, 100%, 80%)');
+        gradient.addColorStop(0.64, 'hsl(180, 100%, 80%)');
+        gradient.addColorStop(0.80, 'hsl(240, 100%, 80%)');
+        gradient.addColorStop(1, 'hsl(300, 100%, 80%)');
+
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, pickerRect.width, 1);
+
+        // Extract color from the calculated position
+        let imageData = context.getImageData(x + colorCircle.offsetWidth / 2, 0, 1, 1).data;
+        let newColor = `rgb(${imageData[0]}, ${imageData[1]}, ${imageData[2]})`;
+
+        // Update the player's color and the circle's background color
+        player.color = newColor;
+        colorCircle.style.backgroundColor = newColor;
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+
+    // Synchronize devOptions state between scenes
+    function syncDevOptionsState() {
+      if (devOptionsState.devOption1Active) {
+        devOption1.classList.add('active');
+        devOption1.querySelector('.centerCircle').classList.add('active');
+        devOption1Play.classList.add('active');
+        devOption1Play.querySelector('.centerCircle').classList.add('active');
+      } else {
+        devOption1.classList.remove('active');
+        devOption1.querySelector('.centerCircle').classList.remove('active');
+        devOption1Play.classList.remove('active');
+        devOption1Play.querySelector('.centerCircle').classList.remove('active');
+      }
+
+      if (devOptionsState.devOption2Active) {
+        devOption2.classList.add('active');
+        devOption2.querySelector('.centerCircle').classList.add('active');
+        devOption2Play.classList.add('active');
+        devOption2Play.querySelector('.centerCircle').classList.add('active');
+      } else {
+        devOption2.classList.remove('active');
+        devOption2.querySelector('.centerCircle').classList.remove('active');
+        devOption2Play.classList.remove('active');
+        devOption2Play.querySelector('.centerCircle').classList.remove('active');
+      }
+    }
+
+
+
+    function drawInnerShadow() {
+      const shadowSize = 30; // Thickness of the shadow
+
+      // Top Shadow
+      let gradient = ctx.createLinearGradient(0, 0, 0, shadowSize);
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, shadowSize);
+
+      // Bottom Shadow
+      gradient = ctx.createLinearGradient(0, canvas.height - shadowSize, 0, canvas.height);
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, canvas.height - shadowSize, canvas.width, shadowSize);
+
+      // Left Shadow
+      gradient = ctx.createLinearGradient(0, 0, shadowSize, 0);
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, shadowSize, canvas.height);
+
+      // Right Shadow
+      gradient = ctx.createLinearGradient(canvas.width - shadowSize, 0, canvas.width, 0);
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(canvas.width - shadowSize, 0, shadowSize, canvas.height);
+
+      // Optional: Add a subtle rounded corner stroke for aesthetics
+      ctx.beginPath();
+      ctx.roundRect(0, 0, canvas.width, canvas.height, 20);
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    function calculateShadowOffsets(entityX, entityY, shadowDistance = 10) {
+      const dx = entityX - centerX;
+      const dy = entityY - centerY;
+      const angle = Math.atan2(dy, dx);
+
+      const offsetX = shadowDistance * Math.cos(angle);
+      const offsetY = shadowDistance * Math.sin(angle);
+
+      // Highlight shadow is opposite to drop shadow
+      const highlightOffsetX = -offsetX;
+      const highlightOffsetY = -offsetY;
+
+      return { offsetX, offsetY, highlightOffsetX, highlightOffsetY };
+    }
+
+    function updateMode() {
+      if (isDarkMode) {
+        darkModeButton.innerText = 'Light Mode';
+        document.documentElement.style.setProperty('--bg-color', '#555555');
+        document.documentElement.style.setProperty('--text-color', '#ddd');
+        document.documentElement.style.setProperty('--hover-bg-color', '#666666');
+        document.documentElement.style.setProperty('--hover-text-color', '#ddd');
+        document.documentElement.style.setProperty('--shadow-light', '#444444');
+        document.documentElement.style.setProperty('--shadow-dark', '#222222');
+        document.documentElement.style.setProperty('--inner-shadow-color', 'rgba(0, 0, 0, 0.4)');
+        document.documentElement.style.setProperty('--inner-highlight-color', 'rgba(255, 255, 255, 0.2)');
+        document.documentElement.style.setProperty('--outer-shadow-color', '#222222');
+        document.documentElement.style.setProperty('--highlight-shadow-color', 'rgba(255, 255, 255, 0.7)');
+        document.documentElement.style.setProperty('--drop-shadow-color', 'rgba(0, 0, 0, 0.3)');
+      } else {
+        darkModeButton.innerText = 'Dark Mode';
+        document.documentElement.style.setProperty('--bg-color', '#e0e0e0');
+        document.documentElement.style.setProperty('--text-color', '#555');
+        document.documentElement.style.setProperty('--hover-bg-color', '#dcdcdc');
+        document.documentElement.style.setProperty('--hover-text-color', '#555');
+        document.documentElement.style.setProperty('--shadow-light', '#ffffff');
+        document.documentElement.style.setProperty('--shadow-dark', '#bebebe');
+        document.documentElement.style.setProperty('--inner-shadow-color', 'rgba(0, 0, 0, 0.1)');
+        document.documentElement.style.setProperty('--inner-highlight-color', 'rgba(255, 255, 255, 0.3)');
+        document.documentElement.style.setProperty('--outer-shadow-color', '#bebebe');
+        document.documentElement.style.setProperty('--highlight-shadow-color', 'rgba(255, 255, 255, 0.7)');
+        document.documentElement.style.setProperty('--drop-shadow-color', 'rgba(0, 0, 0, 0.3)');
+      }
+      document.body.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color');
+      document.body.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-color');
+    }
+
+    // Toggle Dev Option and update state
+    function toggleDevOption(devOption) {
+      devOption.classList.toggle('active');
+      devOption.querySelector('.centerCircle').classList.toggle('active');
+
+      // Update the devOptionsState based on which button was clicked
+      if (devOption === devOption1 || devOption === devOption1Play) {
+        devOptionsState.devOption1Active = !devOptionsState.devOption1Active;
+      } else if (devOption === devOption2 || devOption === devOption2Play) {
+        devOptionsState.devOption2Active = !devOptionsState.devOption2Active;
+      }
+
+      // Sync the state between both scenes
+      syncDevOptionsState();
+    }
+
+    // Add event listeners to main menu and play screen dev buttons
+    devOption1.addEventListener('click', () => {
+      toggleDevOption(devOption1);
+    });
+
+    devOption2.addEventListener('click', () => {
+      toggleDevOption(devOption2);
+    });
+
+    devOption1Play.addEventListener('click', () => {
+      toggleDevOption(devOption1Play);
+    });
+
+    devOption2Play.addEventListener('click', () => {
+      toggleDevOption(devOption2Play);
+    });
+
+    function setPlayerStyle() {
+      ctx.save();
+
+      // Calculate shadow offsets based on position and a simulated light source
+      const { offsetX, offsetY, highlightOffsetX, highlightOffsetY } = calculateShadowOffsets(player.x, player.y, 8);
+
+      // Create gradient fill based on player.color
+      let gradientFill = ctx.createLinearGradient(
+        player.x - player.size / 2,
+        player.y - player.size / 2,
+        player.x + player.size / 2,
+        player.y + player.size / 2
+      );
+      gradientFill.addColorStop(0, player.color);
+      gradientFill.addColorStop(1, player.color);
+
+      ctx.fillStyle = gradientFill;
+
+      if (player.morphed) {
+        // Morphed state: player has inner shadows but no outer shadows
+        ctx.shadowColor = 'transparent';
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner shadow for morphed player
+        const innerShadowOffset = 4;
+        const innerShadowX = player.x + offsetX / 2;
+        const innerShadowY = player.y + offsetY / 2;
+
+        let innerShadowGradient = ctx.createRadialGradient(
+          innerShadowX,
+          innerShadowY,
+          player.size / 2 - innerShadowOffset,
+          innerShadowX,
+          innerShadowY,
+          player.size / 2
+        );
+        innerShadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        innerShadowGradient.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--inner-shadow-color'));
+
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fillStyle = innerShadowGradient;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalCompositeOperation = 'source-over';
+
+      } else {
+        // Non-morphed state: player has both shadows and highlights
+
+        // Draw highlight (light-side shadow)
+        ctx.shadowColor = getComputedStyle(document.documentElement).getPropertyValue('--highlight-shadow-color').trim();
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = highlightOffsetX;
+        ctx.shadowOffsetY = highlightOffsetY;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw drop shadow (dark-side shadow)
+        ctx.shadowColor = getComputedStyle(document.documentElement).getPropertyValue('--drop-shadow-color').trim();
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = offsetX;
+        ctx.shadowOffsetY = offsetY;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw the player without any outer shadows for the final pass
+        ctx.shadowColor = 'transparent';
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+
+    function setEnemyStyle(enemy) {
+      ctx.save();
+
+      // Calculate shadow offsets based on position
+      const { offsetX, offsetY, highlightOffsetX, highlightOffsetY } = calculateShadowOffsets(enemy.x, enemy.y, 8); // Adjust distance as needed
+
+      let gradient = ctx.createLinearGradient(
+        enemy.x - enemy.size / 2,
+        enemy.y - enemy.size / 2,
+        enemy.x + enemy.size / 2,
+        enemy.y + enemy.size / 2
+      );
+      gradient.addColorStop(0, '#FFA3A3');
+      gradient.addColorStop(1, '#FFB3B3');
+
+      ctx.fillStyle = gradient;
+
+      // === Dual Shadows for Enemies ===
+
+      // 1. Draw Highlight Shadow (Light Side)
+      ctx.shadowColor = getComputedStyle(document.documentElement).getPropertyValue('--highlight-shadow-color').trim();
+      ctx.shadowBlur = 15;
+      ctx.shadowOffsetX = highlightOffsetX;
+      ctx.shadowOffsetY = highlightOffsetY;
+      ctx.beginPath();
+      ctx.arc(enemy.x, enemy.y, enemy.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 2. Draw Drop Shadow (Dark Side)
+      ctx.shadowColor = getComputedStyle(document.documentElement).getPropertyValue('--drop-shadow-color').trim();
+      ctx.shadowBlur = 15;
+      ctx.shadowOffsetX = offsetX;
+      ctx.shadowOffsetY = offsetY;
+      ctx.beginPath();
+      ctx.arc(enemy.x, enemy.y, enemy.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3. Draw enemy without shadows
+      ctx.shadowColor = 'transparent';
+      ctx.beginPath();
+      ctx.arc(enemy.x, enemy.y, enemy.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    window.addEventListener('keydown', e => {
+      keys[e.key.toLowerCase()] = true;
+
+      if (firstButtonPress_ == true && gameRunning == true) {
+        respawnEnemy();
+        respawnEnemy();
+        firstButtonPress_ = false;
+      }
+
+
+      if (e.key.toLowerCase() === 'e') {
+        spawnObstacleBelowPlayer();
+      }
+      if (e.key === ' ') {
+        toggleMorph();  // Trigger morph on space bar press
+      }
+    });
+
+    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+    canvas.addEventListener('mousedown', (e) => {
+      const mouseX = e.clientX - canvas.getBoundingClientRect().left;
+      const mouseY = e.clientY - canvas.getBoundingClientRect().top;
+
+      if (e.button === 0) {
+        // Left-click: Shoot toward the mouse position
+        aimAndShoot(mouseX, mouseY);
+      }
+    });
+
+    // Prevent default context menu on right-click
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+
+    function aimAndShoot(mouseX, mouseY) {
+      if (!player.morphed && shootCooldown <= 0) {
+        // Adjust the mouse position by the camera's translation
+        const worldMouseX = mouseX + (cameraX - centerX);
+        const worldMouseY = mouseY + (cameraY - centerY);
+
+        projectiles.push({
+          x: player.x,
+          y: player.y,
+          targetX: worldMouseX,
+          targetY: worldMouseY,
+          speed: 10
+        });
+
+        // Create ripple effect after shooting
+        createRipple(player.x, player.y);
+
+        // Start the reload progress bar
+        reloadCircle.active = true;
+        shootCooldown = shootCooldownMax;
+      }
+    }
+
+
+
+    function invertColor(rgb) {
+      // Extract the RGB values from the "rgb(r, g, b)" string
+      let rgbValues = rgb.match(/\d+/g).map(Number);
+      let r = rgbValues[0];
+      let g = rgbValues[1];
+      let b = rgbValues[2];
+
+      // Invert each color channel
+      r = 255 - r;
+      g = 255 - g;
+      b = 255 - b;
+
+      // Return the inverted color in "rgb(r, g, b)" format
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+
+    function drawReloadProgress() {
+      // Only show the reload bar if it is either reloading or flashing
+      if ((reloadCircle.active || shootCooldown > 0) || shouldFlashReloadBar) {
+        ctx.save();
+
+        const rectWidth = player.size * 0.7;
+        const rectHeight = player.size * 0.2;
+        const rectX = player.x - rectWidth / 2;
+        const rectY = player.y - rectHeight / 2;
+        const cornerRadius = rectHeight / 2;
+
+        // Draw the progress bar background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.beginPath();
+        ctx.roundRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
+        ctx.fill();
+
+        // Inner shadow for Neumorphic effect
+        ctx.shadowColor = getComputedStyle(document.documentElement).getPropertyValue('--inner-shadow-color').trim();
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = -4;
+        ctx.shadowOffsetY = -4;
+        ctx.beginPath();
+        ctx.roundRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
+        ctx.fill();
+
+        // Calculate the current progress of the reload bar based on shootCooldown
+        const progressWidth = (rectWidth * (shootCooldownMax - shootCooldown)) / shootCooldownMax;
+
+        // Flash the reload bar only if the player hits an enemy and shouldFlashReloadBar is true
+        if (shouldFlashReloadBar) {
+          const currentTime = performance.now();
+          const elapsedTime = currentTime - flashStartTime;
+
+          // Ensure the bar flashes only for the duration of flashDuration
+          if (elapsedTime <= flashDuration) {
+            // Toggle between the original and inverted color based on flashInterval
+            if (Math.floor(elapsedTime / flashInterval) % 2 === 0) {
+              ctx.fillStyle = invertColor(player.color); // Use inverted color
+            } else {
+              ctx.fillStyle = player.color; // Use original color
+            }
+          } else {
+            // End the flash effect after the total duration and reset the flag
+            shouldFlashReloadBar = false;
+            ctx.fillStyle = player.color; // Revert to the original player color
+          }
+        } else {
+          // Default color when the bar is not flashing
+          ctx.fillStyle = invertColor(player.color);
+        }
+
+        // Draw the progress bar fill based on the calculated progress
+        ctx.beginPath();
+        ctx.roundRect(rectX, rectY, progressWidth, rectHeight, cornerRadius);
+        ctx.fill();
+
+        ctx.restore();
+
+        if (shootCooldown <= 0) {
+          reloadCircle.active = false; // Hide the reload progress when it's done
+        }
+      }
+    }
+
+
+
+    // Ripple effect constructor
+    function createRipple(x, y) {
+      ripples.push({
+        x: x,
+        y: y,
+        radius: 0,
+        maxRadius: 100,  // Adjust for size of ripple
+        opacity: 1
+      });
+    }
+    // Move and fade the ripple over time
+    function updateRipples() {
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        let ripple = ripples[i];
+        ripple.radius += 2;  // Controls the speed of expansion
+        ripple.opacity -= 0.02;  // Controls how quickly it fades
+
+        if (ripple.opacity <= 0) {
+          ripples.splice(i, 1);  // Remove ripple when fully faded
+        }
+      }
+    }
+    // Draw ripple effect with a radial gradient for smoothness
+    function drawRipples() {
+      ripples.forEach(ripple => {
+        ctx.save();
+
+        let gradient;
+        if (isDarkMode) {
+          // In dark mode, use a dimmer ripple color
+          gradient = ctx.createRadialGradient(
+            ripple.x, ripple.y, ripple.radius / 2,
+            ripple.x, ripple.y, ripple.radius
+          );
+          gradient.addColorStop(0, `rgba(100, 100, 100, ${ripple.opacity * 0.7})`); // Dimmer ripple color
+          gradient.addColorStop(1, `rgba(100, 100, 100, 0)`); // Fades out smoothly
+        } else {
+          // In light mode, use a brighter ripple color
+          gradient = ctx.createRadialGradient(
+            ripple.x, ripple.y, ripple.radius / 2,
+            ripple.x, ripple.y, ripple.radius
+          );
+          gradient.addColorStop(0, `rgba(255, 255, 255, ${ripple.opacity})`);
+          gradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
+        }
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    function moveProjectiles() {
+      projectiles.forEach((p, index) => {
+        let dx = p.targetX - p.x;
+        let dy = p.targetY - p.y;
+        let distance = Math.hypot(dx, dy);
+
+        // Move the projectile in a straight line toward the original target
+        p.x += (dx / distance) * p.speed;
+        p.y += (dy / distance) * p.speed;
+
+        // Check if the projectile hits an obstacle
+        let hitObstacle = obstacles.some(obstacle => {
+          return p.x > obstacle.x && p.x < obstacle.x + obstacle.width &&
+            p.y > obstacle.y && p.y < obstacle.y + obstacle.height;
+        });
+        if (hitObstacle) {
+          // Remove the projectile if it hits an obstacle
+          projectiles.splice(index, 1);
+          return;  // Skip further checks, as the projectile is already removed
+        }
+
+        // Check if the projectile has reached its original target
+        if (Math.hypot(p.targetX - p.x, p.targetY - p.y) < 5) {
+          // Remove the projectile if it's very close to the original target and didn't hit anything
+          projectiles.splice(index, 1);
+          return;  // Skip further checks, as the projectile is already removed
+        }
+
+        // Remove the projectile if it goes off the canvas
+        if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) {
+          projectiles.splice(index, 1);  // Remove projectile if it leaves the canvas
+          return;
+        }
+      });
+    }
+
+
+
+    function checkProjectileObstacleCollision(projX, projY) {
+      let collisionDetected = false;
+
+      // Loop through all obstacles to check if the projectile collides with any obstacle
+      obstacles.forEach(obstacle => {
+        if (projX > obstacle.x &&
+          projX < obstacle.x + obstacle.width &&
+          projY > obstacle.y &&
+          projY < obstacle.y + obstacle.height) {
+          collisionDetected = true;
+        }
+      });
+
+      return collisionDetected;
+    }
+
+    function updateShatterParticles() {
+      for (let i = shatterParticles.length - 1; i >= 0; i--) {
+        let particle = shatterParticles[i];
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
+        particle.alpha -= 0.02;
+        particle.life--;
+
+        if (particle.life <= 0 || particle.alpha <= 0) {
+          shatterParticles.splice(i, 1);
+        }
+      }
+    }
+
+    function drawShatterParticles() {
+      ctx.save();  // Save context state
+
+      shatterParticles.forEach(particle => {
+        ctx.save();  // Save for individual particle
+
+        // Apply camera translation to particle positions
+        const translatedX = particle.x - (cameraX - centerX);
+        const translatedY = particle.y - (cameraY - centerY);
+
+        // Calculate shadow offsets based on the particle's position
+        const { offsetX, offsetY, highlightOffsetX, highlightOffsetY } = calculateShadowOffsets(translatedX, translatedY, 8);
+
+        let gradient = ctx.createLinearGradient(
+          translatedX - particle.size / 2,
+          translatedY - particle.size / 2,
+          translatedX + particle.size / 2,
+          translatedY + particle.size / 2
+        );
+        gradient.addColorStop(0, '#FFA3A3');
+        gradient.addColorStop(1, '#FFB3B3');
+
+        ctx.fillStyle = gradient;
+        ctx.globalAlpha = particle.alpha;  // Set particle alpha
+
+        // Draw particle with shadows
+        ctx.shadowColor = getComputedStyle(document.documentElement).getPropertyValue('--highlight-shadow-color').trim();
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = highlightOffsetX;
+        ctx.shadowOffsetY = highlightOffsetY;
+        ctx.beginPath();
+        ctx.arc(translatedX, translatedY, particle.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowColor = getComputedStyle(document.documentElement).getPropertyValue('--drop-shadow-color').trim();
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = offsetX;
+        ctx.shadowOffsetY = offsetY;
+        ctx.beginPath();
+        ctx.arc(translatedX, translatedY, particle.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();  // Restore individual particle context
+      });
+
+      ctx.restore();  // Restore general context
+    }
+
+
+    function createShatterParticles(x, y, size) {
+      // Use the enemy's actual position directly without any camera adjustment
+      let numParticles = 20;
+      for (let i = 0; i < numParticles; i++) {
+        let particle = {
+          x: x,  // Use the enemy's world position directly
+          y: y,
+          size: Math.random() * size / 4 + size / 8,
+          speedX: (Math.random() - 0.5) * 5,
+          speedY: (Math.random() - 0.5) * 5,
+          alpha: 1.0,
+          life: 60
+        };
+        shatterParticles.push(particle);
+      }
+    }
+
+
+
+    function checkCollisions() {
+      // Check collision between projectiles and enemies
+      enemies.forEach((enemy, index) => {
+        projectiles.forEach((p, pIndex) => {
+          let dx = p.x - enemy.x;
+          let dy = p.y - enemy.y;
+          let distance = Math.hypot(dx, dy);
+
+          if (distance < enemy.size / 2) {
+            // Enemy is hit by the projectile
+            createShatterParticles(enemy.x, enemy.y, enemy.size);
+            enemies.splice(index, 1);  // Remove enemy
+            projectiles.splice(pIndex, 1);  // Remove projectile
+            respawnEnemy();  // Respawn a new enemy
+
+            // Reset the player's shoot cooldown when an enemy is killed
+            shootCooldown = 0;
+
+            // Set the flag to trigger the reload bar flash
+            shouldFlashReloadBar = true;
+            flashStartTime = performance.now(); // Start the flash timer
+          }
+        });
+      });
+
+
+      // Check enemy-to-enemy collisions (handle separately)
+      for (let i = 0; i < enemies.length; i++) {
+        for (let j = i + 1; j < enemies.length; j++) {
+          let enemyA = enemies[i];
+          let enemyB = enemies[j];
+          let dx = enemyB.x - enemyA.x;
+          let dy = enemyB.y - enemyA.y;
+          let distance = Math.hypot(dx, dy);
+          let minDistance = (enemyA.size + enemyB.size) / 2;
+
+          if (distance < minDistance) {
+            // Apply repel force when enemies collide but do NOT trigger game over
+            let overlap = minDistance - distance;
+            let angle = Math.atan2(dy, dx);
+            let repelForce = overlap / 2;
+
+            // Move enemies apart based on repel force
+            enemyA.x -= Math.cos(angle) * repelForce;
+            enemyA.y -= Math.sin(angle) * repelForce;
+            enemyB.x += Math.cos(angle) * repelForce;
+            enemyB.y += Math.sin(angle) * repelForce;
+
+            // Ensure enemies stay within boundaries
+            enemyA.x = Math.max(enemyA.size / 2, Math.min(canvas.width - enemyA.size / 2, enemyA.x));
+            enemyA.y = Math.max(enemyA.size / 2, Math.min(canvas.height - enemyA.size / 2, enemyA.y));
+            enemyB.x = Math.max(enemyB.size / 2, Math.min(canvas.width - enemyB.size / 2, enemyB.x));
+            enemyB.y = Math.max(enemyB.size / 2, Math.min(canvas.height - enemyB.size / 2, enemyB.y));
+          }
+        }
+      }
+    }
+
+    function spawnObstacleBelowPlayer() {
+      const obstacleSize = player.size * 3;
+
+      // Check if we already have 2 obstacles
+      if (obstacles.length >= 2) {
+        console.log("Maximum of 2 obstacles allowed.");
+        return; // Stop if we already have 2 obstacles
+      }
+
+      // Check if the new obstacle would overlap with any existing obstacles
+      const obstacleExists = obstacles.some(obstacle => {
+        return (
+          Math.abs(obstacle.x - player.x) < obstacleSize &&
+          Math.abs(obstacle.y - player.y) < obstacleSize
+        );
+      });
+
+      if (!obstacleExists) {
+        // Create the new obstacle if no overlap is detected
+        const newObstacle = {
+          x: player.x - obstacleSize / 2,
+          y: player.y - obstacleSize / 2,
+          width: obstacleSize,
+          height: obstacleSize,
+          radius: 15,
+          ramp: 'top' // Adjust the ramp direction as needed
+        };
+
+        obstacles.push(newObstacle);
+
+        // Move the player slightly above the obstacle to prevent immediate collision
+        player.y = newObstacle.y - player.size / 2 - 5; // Move the player up slightly
+      } else {
+        console.log("Cannot spawn obstacle here. It would overlap with an existing obstacle.");
+      }
+    }
+
+    function moveEnemies(deltaTime) {
+      // Check if enemy movement debugging is enabled
+      if (!devOptionsState.devOption2Active) return; // Skip movement if debugging option is disabled
+
+      enemies.forEach(enemy => {
+        let dx = player.x - enemy.x;
+        let dy = player.y - enemy.y;
+        let distance = Math.hypot(dx, dy);
+
+        // Adjust enemy speed: scale down to prevent fast movement
+        let adjustedSpeed = enemy.speed * deltaTime * 0.06;
+
+        let newX = enemy.x + (dx / distance) * adjustedSpeed;
+        let newY = enemy.y + (dy / distance) * adjustedSpeed;
+
+        let isCollidingWithObstacle = false;
+        let collisionObstacle = null;
+
+        // Check if enemy is colliding with an obstacle
+        obstacles.forEach(ob => {
+          if (
+            newX + enemy.size / 2 > ob.x &&
+            newX - enemy.size / 2 < ob.x + ob.width &&
+            newY + enemy.size / 2 > ob.y &&
+            newY - enemy.size / 2 < ob.y + ob.height
+          ) {
+            isCollidingWithObstacle = true;
+            collisionObstacle = ob;
+          }
+        });
+
+        if (isCollidingWithObstacle) {
+          // Adjust movement direction to avoid obstacle more effectively
+          if (collisionObstacle) {
+            let angleToPlayer = Math.atan2(dy, dx);
+            let angleOffset = Math.PI / 2;  // Adjust movement by 90 degrees to avoid obstacle
+
+            // Check which direction to steer: clockwise or counterclockwise
+            let newAngle = angleToPlayer + angleOffset;
+            let offsetX = Math.cos(newAngle) * adjustedSpeed;
+            let offsetY = Math.sin(newAngle) * adjustedSpeed;
+
+            // Move enemy around the obstacle by steering away from it
+            enemy.x += offsetX;
+            enemy.y += offsetY;
+          }
+        } else {
+          // Move the enemy normally if no obstacle is in the way
+          enemy.x = newX;
+          enemy.y = newY;
+        }
+
+        // Ensure enemies stay within canvas boundaries
+        enemy.x = Math.max(enemy.size / 2, Math.min(canvas.width - enemy.size / 2, enemy.x));
+        enemy.y = Math.max(enemy.size / 2, Math.min(canvas.height - enemy.size / 2, enemy.y));
+
+        // Enemy shooting logic
+        shootAtPlayer(enemy, deltaTime);
+      });
+    }
+
+
+
+
+
+    function canSeePlayer(enemy) {
+      let dx = player.x - enemy.x;
+      let dy = player.y - enemy.y;
+
+      // Simplified version: just check if there's no obstacle between enemy and player
+      for (let obstacle of obstacles) {
+        // Check if the obstacle intersects the line between the enemy and player
+        if (obstacle.x < Math.max(enemy.x, player.x) &&
+          obstacle.x + obstacle.width > Math.min(enemy.x, player.x) &&
+          obstacle.y < Math.max(enemy.y, player.y) &&
+          obstacle.y + obstacle.height > Math.min(enemy.y, player.y)) {
+          return false;  // Obstacle blocks the line of sight
+        }
+      }
+
+      return true;  // No obstacle blocking line of sight
+    }
+
+    function predictPlayerPosition(player, enemy, projectileSpeed) {
+      // Calculate the distance between the player and the enemy
+      let dx = player.x - enemy.x;
+      let dy = player.y - enemy.y;
+      let distance = Math.hypot(dx, dy);
+
+      // Time it will take for the projectile to reach the current player position
+      let timeToReachPlayer = distance / projectileSpeed;
+
+      // Predict future player position based on their velocity and time
+      let futurePlayerX = player.x + player.velocityX * timeToReachPlayer;
+      let futurePlayerY = player.y + player.velocityY * timeToReachPlayer;
+
+      return { x: futurePlayerX, y: futurePlayerY };
+    }
+
+    function shootAtPlayer(enemy, deltaTime) {
+      const visionDelay = 1000;  // 1 second delay before shooting
+      const shootCooldownMax = 2000;  // Cooldown time between shots (2 seconds)
+
+      if (!gameRunning || !devOptionsState.devOption1Active) return; // Skip shooting if game is not running or debug option is disabled
+
+      if (canSeePlayer(enemy)) {
+        if (!enemy.visionTime) {
+          enemy.visionTime = 0; // Initialize vision time if not set
+        }
+        enemy.visionTime += deltaTime;
+
+        if (enemy.visionTime >= visionDelay) {
+          if (enemy.shootCooldown <= 0) {
+            // Predict player's future position
+            const predictedPosition = predictPlayerPosition(player, enemy, 5); // 5 is the projectile speed
+
+            // Shoot at predicted position
+            enemyProjectiles.push({
+              x: enemy.x,
+              y: enemy.y,
+              targetX: predictedPosition.x,
+              targetY: predictedPosition.y,
+              speed: 5 // Adjust speed as necessary
+            });
+
+            enemy.shootCooldown = shootCooldownMax; // Reset cooldown
+          }
+        }
+      } else {
+        enemy.visionTime = 0; // Reset vision time if player is not visible
+      }
+
+      if (enemy.shootCooldown > 0) {
+        enemy.shootCooldown -= deltaTime; // Decrease cooldown over time, only when the game is running
+      }
+    }
+
+    function moveEnemyProjectiles() {
+      enemyProjectiles.forEach((p, index) => {
+        let dx = p.targetX - p.x;
+        let dy = p.targetY - p.y;
+        let distance = Math.hypot(dx, dy);
+
+        // Move the projectile in a straight line toward the original target
+        p.x += (dx / distance) * p.speed;
+        p.y += (dy / distance) * p.speed;
+
+        // Check if the projectile hits the player (use player's current position)
+        let playerDistance = Math.hypot(player.x - p.x, player.y - p.y);
+        if (playerDistance < player.size / 2) {
+          enemyProjectiles.splice(index, 1);
+          endGame();  // Player hit
+          return;
+        }
+
+        // Check if the projectile hits an obstacle
+        let hitObstacle = obstacles.some(obstacle => {
+          return p.x > obstacle.x && p.x < obstacle.x + obstacle.width &&
+            p.y > obstacle.y && p.y < obstacle.y + obstacle.height;
+        });
+        if (hitObstacle) {
+          enemyProjectiles.splice(index, 1);  // Remove the projectile
+          return;
+        }
+
+        // Check if the projectile has reached its original target
+        if (Math.hypot(p.targetX - p.x, p.targetY - p.y) < 5) {
+          enemyProjectiles.splice(index, 1);  // Remove the projectile
+          return;
+        }
+
+        // Remove the projectile if it goes off the canvas
+        if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) {
+          enemyProjectiles.splice(index, 1);
+          return;
+        }
+      });
+    }
+
+
+    function toggleMorph() {
+      if (!morphToggled && keys[' ']) {
+        player.morphed = !player.morphed;
+        morphToggled = true;  // Set to true so we don't toggle again on the same key press
+
+        // Set target opacity based on the morph state
+        if (!player.morphed) {
+          targetOpacity_ = 0.4;  // Fade out the vignette when morphed
+        } else {
+          targetOpacity_ = 1.0;  // Fade back in the vignette when not morphed
+        }
+      } else {
+        morphToggled = false;
+        player.morphed = !player.morphed;
+        if (!player.morphed) {
+          targetOpacity_ = 0.4;  // Fade out the vignette when morphed
+        } else {
+          targetOpacity_ = 1.0;  // Fade back in the vignette when not morphed
+        }
+      }
+    }
+
+
+    function respawnEnemy() {
+      let newEnemy;
+      let isValidPosition = false;
+      const minSpawnDistance = 300; // Define a minimum safe spawn distance from the player
+      const spawnCooldown = 2000; // Add a spawn cooldown to avoid instant shooting
+
+      while (!isValidPosition) {
+        newEnemy = {
+          x: 0,
+          y: 0,
+          size: 30,
+          speed: 1.5,
+          shootCooldown: spawnCooldown, // Set a cooldown before the enemy can shoot
+          morphed: false
+        };
+
+        const spawnAtBoundary = Math.random() < 0.5;
+
+        if (spawnAtBoundary) {
+          // Spawn at one of the boundaries of the level
+          let edge = Math.floor(Math.random() * 4); // 0: Top, 1: Right, 2: Bottom, 3: Left
+          if (edge === 0) {
+            newEnemy.x = Math.random() * canvas.width;
+            newEnemy.y = newEnemy.size / 2;
+          } else if (edge === 1) {
+            newEnemy.x = canvas.width - newEnemy.size / 2;
+            newEnemy.y = Math.random() * canvas.height;
+          } else if (edge === 2) {
+            newEnemy.x = Math.random() * canvas.width;
+            newEnemy.y = canvas.height - newEnemy.size / 2;
+          } else {
+            newEnemy.x = newEnemy.size / 2;
+            newEnemy.y = Math.random() * canvas.height;
+          }
+        } else {
+          // Spawn under a random obstacle
+          let obstacle = obstacles[Math.floor(Math.random() * obstacles.length)];
+          newEnemy.x = obstacle.x + obstacle.width / 2;
+          newEnemy.y = obstacle.y + obstacle.height / 2;
+        }
+
+        // Ensure the new enemy does not spawn too close to the player
+        let dxPlayer = newEnemy.x - player.x;
+        let dyPlayer = newEnemy.y - player.y;
+        let playerDistance = Math.hypot(dxPlayer, dyPlayer);
+
+        if (playerDistance >= minSpawnDistance) {
+          isValidPosition = true; // Found a valid position
+        }
+      }
+
+      enemies.push(newEnemy); // Add the new enemy to the enemies array
+    }
+
+
+
+    // ---------------------------------------------------------------------------------------------------
+
+    function movePlayer() {
+      const speed = player.morphed ? player.morphSpeed : player.speed;
+      let newX = player.x;
+      let newY = player.y;
+
+      // Update player position based on keys pressed
+      let velocityX = 0, velocityY = 0;
+
+      if (keys['w']) velocityY = -speed;
+      if (keys['s']) velocityY = speed;
+      if (keys['a']) velocityX = -speed;
+      if (keys['d']) velocityX = speed;
+
+      newX += velocityX;
+      newY += velocityY;
+
+      let canMoveX = true, canMoveY = true;
+
+      obstacles.forEach(obstacle => {
+        if (isPlayerCollidingWithObstacle(newX, player.y, obstacle)) {
+          canMoveX = false;  // Prevent horizontal movement if colliding with an obstacle
+        }
+        if (isPlayerCollidingWithObstacle(player.x, newY, obstacle)) {
+          canMoveY = false;  // Prevent vertical movement if colliding with an obstacle
+        }
+      });
+
+      // Update player position only if not colliding with obstacles
+      if (canMoveX) player.x = newX;
+      if (canMoveY) player.y = newY;
+
+      // Save velocity for use in particle generation
+      player.velocityX = velocityX;
+      player.velocityY = velocityY;
+
+      // Ensure the player stays within canvas boundaries
+      player.x = Math.max(player.size / 2, Math.min(canvas.width - player.size / 2, player.x));
+      player.y = Math.max(player.size / 2, Math.min(canvas.height - player.size / 2, player.y));
+
+      // Generate particles based on movement speed
+      generatePlayerParticles();
+    }
+
+    function isPlayerCollidingWithObstacle(x, y, obstacle) {
+      return (
+        x + player.size / 2 > obstacle.x &&
+        x - player.size / 2 < obstacle.x + obstacle.width &&
+        y + player.size / 2 > obstacle.y &&
+        y - player.size / 2 < obstacle.y + obstacle.height
+      );
+    }
+
+    function isEnteringRamp(ramp, newX, newY, obstacle) {
+      const rampBuffer = 20;
+      switch (ramp) {
+        case 'top': return newY + player.size / 2 <= obstacle.y + rampBuffer;
+        case 'bottom': return newY - player.size / 2 >= obstacle.y + obstacle.height - rampBuffer;
+        case 'left': return newX + player.size / 2 <= obstacle.x + rampBuffer;
+        case 'right': return newX - player.size / 2 >= obstacle.x + obstacle.width - rampBuffer;
+        default: return false;
+      }
+    }
+
+    function isNearEdge(pos, min, size) {
+      return pos <= min || pos >= min + size;
+    }
+
+
+
+    // --------------------------------------------------------------------------------------------------------
+
+
+    function drawNeumorphicObstacle(obstacle, player) {
+      ctx.save();
+
+      // Calculate shadow offsets based on the light source
+      const { offsetX, offsetY, highlightOffsetX, highlightOffsetY } = calculateShadowOffsets(
+        obstacle.x + obstacle.width / 2,
+        obstacle.y + obstacle.height / 2,
+        15
+      );
+
+      // Create gradient fill for the obstacle (simulates depth)
+      let gradientFill = ctx.createLinearGradient(
+        obstacle.x,
+        obstacle.y,
+        obstacle.x + obstacle.width,
+        obstacle.y + obstacle.height
+      );
+      gradientFill.addColorStop(0, '#e0e0e0'); // Lighter color at the top-left
+      gradientFill.addColorStop(1, '#bebebe'); // Darker color at the bottom-right
+
+      // Fill the obstacle's shape (rectangle with rounded corners)
+      ctx.fillStyle = gradientFill;
+      ctx.beginPath();
+      ctx.roundRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height, obstacle.radius);
+      ctx.fill();
+
+      // Add shadow effect to the obstacle to emphasize depth
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)'; // Darker shadow for better contrast
+      ctx.shadowBlur = 20;
+      ctx.shadowOffsetX = offsetX;
+      ctx.shadowOffsetY = offsetY;
+      ctx.fill();
+
+      // Add highlight effect to the opposite side of the shadow for contrast
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.7)'; // Stronger highlight color
+      ctx.shadowBlur = 15;
+      ctx.shadowOffsetX = highlightOffsetX;
+      ctx.shadowOffsetY = highlightOffsetY;
+      ctx.fill();
+
+      // Calculate the distance between the player and the obstacle
+      let distance = Math.hypot(player.x - (obstacle.x + obstacle.width / 2), player.y - (obstacle.y + obstacle.height / 2));
+
+      // Determine the opacity of the ramp shadow based on the distance to the player
+      const fadeDistance = 300; // Larger distance for gradual fading
+      let rampOpacity = Math.max(0.2, Math.min(1, 1 - distance / fadeDistance));
+
+      // If the player is on the obstacle, keep the ramp fully visible
+      const isPlayerOnObstacle = (
+        player.x + player.size / 2 > obstacle.x &&
+        player.x - player.size / 2 < obstacle.x + obstacle.width &&
+        player.y + player.size / 2 > obstacle.y &&
+        player.y - player.size / 2 < obstacle.y + obstacle.height
+      );
+      if (isPlayerOnObstacle) {
+        rampOpacity = 1;
+      }
+
+      // Apply the ramp shadow with fading effect and gradient for a smoother transition
+      ctx.globalAlpha = rampOpacity;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'; // Base darker shadow for the ramp
+
+      ctx.beginPath();
+      if (obstacle.ramp === 'top') {
+        // Top ramp darkens as the player approaches
+        let rampGradient = ctx.createLinearGradient(obstacle.x, obstacle.y, obstacle.x, obstacle.y - 20);
+        rampGradient.addColorStop(0, `rgba(0, 0, 0, ${rampOpacity * 0.5})`);
+        rampGradient.addColorStop(1, `rgba(0, 0, 0, 0)`);
+        ctx.fillStyle = rampGradient;
+
+        ctx.moveTo(obstacle.x + obstacle.radius, obstacle.y); // Start at top-left rounded edge
+        ctx.lineTo(obstacle.x + obstacle.width - obstacle.radius, obstacle.y); // Go to the top-right
+        ctx.arcTo(obstacle.x + obstacle.width, obstacle.y, obstacle.x + obstacle.width, obstacle.y + obstacle.radius, obstacle.radius); // Top-right corner
+      } else if (obstacle.ramp === 'bottom') {
+        let rampGradient = ctx.createLinearGradient(obstacle.x, obstacle.y + obstacle.height, obstacle.x, obstacle.y + obstacle.height + 20);
+        rampGradient.addColorStop(0, `rgba(0, 0, 0, ${rampOpacity * 0.5})`);
+        rampGradient.addColorStop(1, `rgba(0, 0, 0, 0)`);
+        ctx.fillStyle = rampGradient;
+
+        ctx.moveTo(obstacle.x + obstacle.radius, obstacle.y + obstacle.height); // Bottom-left
+        ctx.lineTo(obstacle.x + obstacle.width - obstacle.radius, obstacle.y + obstacle.height); // Go to the bottom-right
+        ctx.arcTo(obstacle.x + obstacle.width, obstacle.y + obstacle.height, obstacle.x + obstacle.width, obstacle.y + obstacle.height - obstacle.radius, obstacle.radius); // Bottom-right corner
+      } else if (obstacle.ramp === 'left') {
+        let rampGradient = ctx.createLinearGradient(obstacle.x, obstacle.y, obstacle.x - 20, obstacle.y);
+        rampGradient.addColorStop(0, `rgba(0, 0, 0, ${rampOpacity * 0.5})`);
+        rampGradient.addColorStop(1, `rgba(0, 0, 0, 0)`);
+        ctx.fillStyle = rampGradient;
+
+        ctx.moveTo(obstacle.x, obstacle.y + obstacle.radius); // Start at left side top rounded edge
+        ctx.lineTo(obstacle.x, obstacle.y + obstacle.height - obstacle.radius); // Go down to the bottom
+        ctx.arcTo(obstacle.x, obstacle.y + obstacle.height, obstacle.x + obstacle.radius, obstacle.y + obstacle.height, obstacle.radius); // Bottom-left corner
+      } else if (obstacle.ramp === 'right') {
+        let rampGradient = ctx.createLinearGradient(obstacle.x + obstacle.width, obstacle.y, obstacle.x + obstacle.width + 20, obstacle.y);
+        rampGradient.addColorStop(0, `rgba(0, 0, 0, ${rampOpacity * 0.5})`);
+        rampGradient.addColorStop(1, `rgba(0, 0, 0, 0)`);
+        ctx.fillStyle = rampGradient;
+
+        ctx.moveTo(obstacle.x + obstacle.width, obstacle.y + obstacle.radius); // Start at right side top
+        ctx.lineTo(obstacle.x + obstacle.width, obstacle.y + obstacle.height - obstacle.radius); // Go down to the bottom
+        ctx.arcTo(obstacle.x + obstacle.width, obstacle.y + obstacle.height, obstacle.x + obstacle.width - obstacle.radius, obstacle.y + obstacle.height, obstacle.radius); // Bottom-right corner
+      }
+
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+
+
+    function drawArrowTowardsRamp(obstacle, player) {
+      // Variables for the arrow position
+      let arrowX = obstacle.x;
+      let arrowY = obstacle.y;
+      let arrowAngle = 0;
+
+      const rampOffset = 15; // Move the arrow closer to the ramp
+
+      // Adjust the arrow position and angle based on the ramp's location
+      if (obstacle.ramp === 'top') {
+        arrowX = obstacle.x + obstacle.width / 2; // Center horizontally
+        arrowY = obstacle.y - rampOffset;         // Slightly above the obstacle
+        arrowAngle = -Math.PI;                    // Rotate to point upwards
+      } else if (obstacle.ramp === 'bottom') {
+        arrowX = obstacle.x + obstacle.width / 2; // Center horizontally
+        arrowY = obstacle.y + obstacle.height + rampOffset; // Slightly below the obstacle
+        arrowAngle = 0;                           // Rotate to point downwards
+      } else if (obstacle.ramp === 'left') {
+        arrowX = obstacle.x - rampOffset;         // Slightly to the left of the obstacle
+        arrowY = obstacle.y + obstacle.height / 2; // Center vertically
+        arrowAngle = Math.PI / 2;                 // Rotate to point left
+      } else if (obstacle.ramp === 'right') {
+        arrowX = obstacle.x + obstacle.width + rampOffset; // Slightly to the right
+        arrowY = obstacle.y + obstacle.height / 2;         // Center vertically
+        arrowAngle = -Math.PI / 2;              // Rotate to point right
+      }
+
+      // Calculate the distance between the player and the ramp
+      let distance = Math.hypot(player.x - arrowX, player.y - arrowY);
+
+      // Determine the arrow's opacity based on the distance
+      const fadeDistance = 250; // Arrow fades within this distance
+      let opacity = Math.max(0, Math.min(1, 1 - distance / fadeDistance));
+
+      // Faster transition to obstacle color
+      const colorTransitionDistance = 60; // Faster transition by extending distance
+      let arrowColor;
+      if (distance < colorTransitionDistance) {
+        // Match the obstacle's color when player is near the ramp
+        arrowColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color');
+      } else {
+        // Default arrow color
+        arrowColor = isDarkMode ? 'rgba(100, 100, 100, 0.9)' : 'rgba(255, 255, 255, 0.9)';
+      }
+
+      // Draw the arrow if opacity > 0
+      if (opacity > 0) {
+        ctx.save();
+        ctx.translate(arrowX, arrowY); // Move to the arrow's position
+        ctx.rotate(arrowAngle);        // Rotate the arrow by the calculated angle
+        ctx.globalAlpha = opacity;     // Apply the opacity
+
+        // Calculate shadow and highlight offsets based on distance to player
+        const { offsetX, offsetY, highlightOffsetX, highlightOffsetY } = calculateShadowOffsets(arrowX, arrowY, 10);
+
+        // Apply neumorphic shadow for depth effect
+        ctx.shadowColor = `rgba(0, 0, 0, ${0.7 * opacity})`; // Darker shadow fading in
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetX = offsetX;
+        ctx.shadowOffsetY = offsetY;
+
+        // Draw the arrow with the calculated color
+        ctx.fillStyle = arrowColor;
+        ctx.beginPath();
+        ctx.moveTo(0, -10);  // Arrow tip
+        ctx.lineTo(-10, 10); // Left base
+        ctx.lineTo(10, 10);  // Right base
+        ctx.closePath();
+        ctx.fill();
+
+        // Apply neumorphic highlight
+        ctx.shadowColor = `rgba(255, 255, 255, ${0.7 * opacity})`; // Highlight fading in
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = highlightOffsetX;
+        ctx.shadowOffsetY = highlightOffsetY;
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+
+
+    // Linear Interpolation (lerp) function for smooth movement
+    function lerp(start, end, amt) {
+      return start * (1 - amt) + end * amt;
+    }
+
+    function createPlayerParticle() {
+      let particle = {
+        x: player.x,  // Use player's current position
+        y: player.y,
+        size: Math.random() * 4 + 1,  // Random size for particles
+        speedX: (Math.random() - 0.5) * 1.5,  // Random speed X
+        speedY: (Math.random() - 0.5) * 1.5,  // Random speed Y
+        alpha: 1.0,  // Full opacity
+        life: 65,  // Particle life duration
+        color: player.color  // Match particle color to the player's current color
+      };
+      playerParticles.push(particle);
+    }
+
+    function updatePlayerParticles() {
+      for (let i = playerParticles.length - 1; i >= 0; i--) {
+        let particle = playerParticles[i];
+        particle.x += particle.speedX;  // Move particle by its speed X
+        particle.y += particle.speedY;  // Move particle by its speed Y
+        particle.alpha -= 0.01;  // Gradually fade out
+        particle.life--;
+
+        if (particle.life <= 0 || particle.alpha <= 0) {
+          playerParticles.splice(i, 1);  // Remove particle when life or alpha is 0
+        }
+      }
+    }
+
+
+    // Function to draw player particles with a glow effect
+    function drawPlayerParticles() {
+      playerParticles.forEach(particle => {
+        ctx.save();
+        ctx.globalAlpha = particle.alpha;  // Set particle's transparency
+        ctx.fillStyle = particle.color;  // Set particle's color to match player
+
+        // Apply a glow effect to the particles
+        ctx.shadowColor = particle.color;
+        ctx.shadowBlur = 20;
+
+        // Draw the particle as a small circle
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+
+    function drawPlayerProjectiles() {
+      projectiles.forEach(p => {
+        // Calculate the distance from the center of the vignette
+        let distanceToCenter = Math.hypot(p.x - canvas.width / 2, p.y - canvas.height / 2);
+        let maxDistance = Math.hypot(canvas.width / 2, canvas.height / 2);
+
+        // Adjust opacity based on the distance to the center
+        let opacity = Math.max(0.3, 1 - (distanceToCenter / maxDistance));
+
+        // Create a radial gradient for the player projectile's punch-through effect
+        let projectileLight = ctx.createRadialGradient(
+          p.x, p.y, 0,
+          p.x, p.y, 20  // Adjust this value for the size of the punch-through effect
+        );
+        projectileLight.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
+        projectileLight.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+        // Apply the punch-through effect for the projectile
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = projectileLight;
+        ctx.fillRect(p.x - 50, p.y - 50, 100, 100);  // Adjust the size as needed
+
+        // Restore the default composite operation
+        ctx.globalCompositeOperation = 'source-over';
+
+        // Draw the projectile itself
+        ctx.save();
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';  // White glow for player projectiles
+        ctx.shadowBlur = 15;
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+
+
+    function createSlowParticle(x, y, color) {
+      let particle = {
+        x: x,
+        y: y,
+        size: Math.random() * 2 + 1,  // Smaller particles
+        speedX: (Math.random() - 0.5) * 0.8,  // Slower speed
+        speedY: (Math.random() - 0.5) * 0.8,  // Slower speed
+        alpha: 1.0,
+        life: 120,  // Longer lifespan for slow particles
+        color: color
+      };
+      playerParticles.push(particle);
+    }
+
+    // Call this function to generate particles when the player is not morphed
+    function generatePlayerParticles() {
+      const speed = Math.hypot(player.velocityX, player.velocityY);  // Calculate player speed
+
+      if (!player.morphed) {
+        if (speed > 0.1) {
+          // Higher speed, normal particle spawn and movement
+          createPlayerParticle();
+        } else {
+          // Player is idle, generate slower particles
+          createSlowParticle(player.x, player.y, player.color);
+        }
+      }
+    }
+
+
+    function drawGame() {
+      // Clear the canvas before drawing
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Smoothly update the camera's position using lerp
+      cameraX = lerp(cameraX, player.x, smoothness);
+      cameraY = lerp(cameraY, player.y, smoothness);
+
+      // Calculate translation to center the player with smooth movement
+      const translateX = centerX - cameraX;
+      const translateY = centerY - cameraY;
+
+      // Save the context state before translating
+      ctx.save();
+
+      // Translate the canvas to follow the player smoothly
+      ctx.translate(translateX, translateY);
+
+      // Draw the background first
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-color');
+      ctx.fillRect(-translateX, -translateY, canvas.width, canvas.height);
+
+      // Draw the vignette and punch-through effects first
+      drawVignette();
+
+      // Draw player particles **before** drawing the player so they appear under the player
+      drawPlayerParticles();
+
+      drawPlayerProjectiles();
+
+      // Now draw the player with the neumorphic shadows and highlights
+      setPlayerStyle();
+
+      // Draw ripples after particles
+      drawRipples();
+
+      // Draw reload progress bar if active
+      drawReloadProgress();
+
+      // Draw all enemies
+      enemies.forEach(enemy => {
+        setEnemyStyle(enemy);
+      });
+
+      drawEnemyProjectiles();
+
+      // Draw obstacles after all the punch-through effects
+      obstacles.forEach(obstacle => {
+        drawNeumorphicObstacle(obstacle, player);
+        drawArrowTowardsRamp(obstacle, player);
+      });
+
+      // Restore the context state to remove the translation
+      ctx.restore();
+
+      // Draw shatter particles after everything else
+      drawShatterParticles();
+    }
+
+    function drawEnemyProjectiles() {
+      enemyProjectiles.forEach(p => {
+        // Calculate the distance from the center of the vignette
+        let distanceToCenter = Math.hypot(p.x - canvas.width / 2, p.y - canvas.height / 2);
+        let maxDistance = Math.hypot(canvas.width / 2, canvas.height / 2);
+
+        // Adjust opacity based on the distance to the center
+        let opacity = Math.max(0.3, 1 - (distanceToCenter / maxDistance));
+
+        // Create a radial gradient for the enemy projectile's punch-through effect
+        let projectileLight = ctx.createRadialGradient(
+          p.x, p.y, 0,
+          p.x, p.y, 20
+        );
+        projectileLight.addColorStop(0, `rgba(255, 0, 0, ${opacity})`);
+        projectileLight.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+        // Apply the punch-through effect for the projectile
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = projectileLight;
+        ctx.fillRect(p.x - 50, p.y - 50, 100, 100);  // Adjust the size as needed
+
+        // Restore the default composite operation
+        ctx.globalCompositeOperation = 'source-over';
+
+        // Draw the projectile itself with its glow effect
+        ctx.save();
+        ctx.shadowColor = 'rgba(255, 0, 0, 0.8)';  // Bright red glow
+        ctx.shadowBlur = 15;
+        ctx.fillStyle = 'rgba(255, 0, 0, 1)';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    function hexToRgb(hex) {
+      // Convert a hex color code to an RGB array [r, g, b]
+      let bigint = parseInt(hex.slice(1), 16);  // Remove '#' and convert hex to a number
+      let r = (bigint >> 16) & 255;
+      let g = (bigint >> 8) & 255;
+      let b = bigint & 255;
+      return [r, g, b];
+    }
+
+    function drawVignette() {
+      // Fix the vignette center at the center of the screen
+      const vignetteCenterX = canvas.width / 2;
+      const vignetteCenterY = canvas.height / 2;
+
+      // Gradually interpolate the vignette opacity for smooth fading
+      vignetteOpacity_ = lerp(vignetteOpacity_, targetOpacity_, 0.05);
+
+      // Define the vignette radius and opacity based on the player's morph state
+      let innerRadius = player.morphed ? 50 : 150;
+      let outerOpacity = player.morphed ? vignetteOpacity_ : vignetteOpacity_;
+
+      // Create a radial gradient for the vignette effect
+      let gradient = ctx.createRadialGradient(
+        vignetteCenterX, vignetteCenterY, innerRadius,
+        vignetteCenterX, vignetteCenterY, Math.max(canvas.width, canvas.height) / 2
+      );
+
+      // Define gradient stops with dynamic opacity
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      gradient.addColorStop(0.7, `rgba(0, 0, 0, ${outerOpacity - 0.4})`);
+      gradient.addColorStop(1, `rgba(0, 0, 0, ${outerOpacity})`);
+
+      // Apply the gradient as the base vignette
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Define the player's light source radius based on morph state
+      let playerLightRadius = player.morphed ? 50 : 100; // Smaller light when morphed
+
+      // Subtract vignette intensity around the player
+      let playerLight = ctx.createRadialGradient(
+        player.x, player.y, 0,
+        player.x, player.y, playerLightRadius  // Adjust size of the player's light source
+      );
+      playerLight.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
+      playerLight.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+      // Apply the player's local light to punch through the vignette
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = playerLight;
+      ctx.fillRect(player.x - playerLightRadius, player.y - playerLightRadius, playerLightRadius * 2, playerLightRadius * 2);
+
+      // Now handle the particles as additional local light sources
+      playerParticles.forEach(particle => {
+        // Calculate distance from the center of the vignette
+        let distanceToCenter = Math.hypot(particle.x - vignetteCenterX, particle.y - vignetteCenterY);
+        let maxDistance = Math.hypot(canvas.width / 2, canvas.height / 2);
+
+        // Adjust opacity based on distance from the center
+        let opacity = Math.max(0, 1 - (distanceToCenter / maxDistance));
+
+        let particleLight = ctx.createRadialGradient(
+          particle.x, particle.y, 0,
+          particle.x, particle.y, 50  // Adjust size of particle light source
+        );
+
+        particleLight.addColorStop(0, `rgba(255, 255, 255, ${opacity * 0.5})`);  // Opacity scales with distance
+        particleLight.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+        ctx.fillStyle = particleLight;
+        ctx.fillRect(particle.x - 50, particle.y - 50, 100, 100);  // Light area around particles
+      });
+
+      // Reset the composite operation to default
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+
+    // Lerp function for smooth transitions
+    function lerp(start, end, amt) {
+      return start * (1 - amt) + end * amt;
+    }
+
+
+
+
+    function gameLoop() {
+      if (gameRunning) {
+        if (shootCooldown > 0) {
+          shootCooldown--;  // Decrease the player's shooting cooldown
+        }
+
+        const currentTime = performance.now();
+        const deltaTime = currentTime - lastTime_;
+        lastTime_ = currentTime;
+
+        // Move game elements
+        movePlayer();  // Move the player
+        moveProjectiles();  // Move the player's projectiles
+        moveEnemyProjectiles();  // Move enemy projectiles
+        moveEnemies(deltaTime);  // Move the enemies
+        checkCollisions();  // Check for collisions between entities
+
+        // Update particle effects and ripples
+        updateRipples();  // Update ripple effects
+        updateShatterParticles();  // Update shatter particles
+        updatePlayerParticles();  // Update player particles
+
+        // Smoothly update the camera's position using lerp
+        cameraX = lerp(cameraX, player.x, smoothness);
+        cameraY = lerp(cameraY, player.y, smoothness);
+
+        // Draw everything on the canvas
+        drawGame();  // Draw all elements on the canvas
+
+        // Keep the loop running
+        requestAnimationFrame(gameLoop);  // Request the next frame
+      }
+    }
+
+    function endGame() {
+      gameRunning = false;  // Stop the game
+
+      // Display "Game Over" text
+      gameOverText.style.display = 'flex';
+      playScreen.style.display = 'flex';
+      canvas.style.display = 'block';
+
+      // Set a timeout to show the main menu after a short delay
+      setTimeout(() => {
+        gameOverText.style.display = 'none';
+        playScreen.style.display = 'none';
+        mainMenu.style.display = 'flex';
+        startButton.innerText = 'Play Again';
+        canvas.style.display = 'none';
+      }, 2000);  // Adjust delay as needed (2 seconds)
+    }
+
+    function resetGameState() {
+      // Clear all game objects and reset game variables
+      enemies = [];
+      projectiles = [];
+      enemyProjectiles = [];
+      shootCooldown = 0;  // Reset shoot cooldown
+      morphToggled = false;
+      gameRunning = false;  // Ensure the game is not running in the background
+
+      // Reset the cooldown for all enemies
+      enemies.forEach(enemy => {
+        enemy.shootCooldown = 0;  // Reset each enemy's shoot cooldown
+      });
+    }
+
+    function initializeGame() {
+      console.log("Initializing game...");
+      firstButtonPress_ = true;
+      gameOverText.style.display = 'none';  // Hide the game over text initially
+      canvas.style.display = 'block';  // Ensure canvas is visible
+
+      ctx = canvas.getContext('2d');  // Get the 2D drawing context
+
+      player = {
+        x: 100,
+        y: 100,
+        size: 30,
+        speed: 2,
+        morphed: false,
+        morphSpeed: 4,
+        color: player.color  // Use existing player color from the picker
+      };
+
+      enemies = [];
+      enemyProjectiles = [];
+      projectiles = [];
+      keys = {};
+      morphToggled = false;
+      gameRunning = true;
+      shootCooldown = 0;  // Reset player's shooting cooldown
+
+      centerX = canvas.width / 2;
+      centerY = canvas.height / 2;
+
+      syncDevOptionsState();  // Sync developer options between scenes
+
+      console.log("Game initialized with player at:", player);
+      console.log("Enemies initialized:", enemies);
+    }
+
+    // Add an event listener to the start button
+    startButton.addEventListener('click', () => {
+      if (!gameRunning) {
+        // Switch to play screen
+        mainMenu.style.display = 'none';
+        playScreen.style.display = 'flex';
+        canvas.style.display = 'block';  // Make sure canvas is displayed
+
+        resetGameState();  // Reset the game state
+        initializeGame();  // Initialize the game
+        gameRunning = true;  // Start the game
+        requestAnimationFrame(gameLoop);  // Start game loop using requestAnimationFrame
+      }
+    });
+
+
+    darkModeButton.addEventListener('click', () => {
+      isDarkMode = !isDarkMode;
+      updateMode();
+    });
+
+    updateMode();
+  </script>
+</body>
+
+</html>
