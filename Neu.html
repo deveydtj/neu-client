@@ -374,8 +374,7 @@
     const vignetteSmoothness = 0.09; // Adjust this value for smoothness
 
     let reloadCircle = {
-      active: false,
-      angle: 0  // Angle of rotation around the player
+      active: false
     };
 
     let flashOnce = false;
@@ -483,44 +482,7 @@
 
 
 
-    function drawInnerShadow() {
-      const shadowSize = 30; // Thickness of the shadow
 
-      // Top Shadow
-      let gradient = ctx.createLinearGradient(0, 0, 0, shadowSize);
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, shadowSize);
-
-      // Bottom Shadow
-      gradient = ctx.createLinearGradient(0, canvas.height - shadowSize, 0, canvas.height);
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, canvas.height - shadowSize, canvas.width, shadowSize);
-
-      // Left Shadow
-      gradient = ctx.createLinearGradient(0, 0, shadowSize, 0);
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, shadowSize, canvas.height);
-
-      // Right Shadow
-      gradient = ctx.createLinearGradient(canvas.width - shadowSize, 0, canvas.width, 0);
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(canvas.width - shadowSize, 0, shadowSize, canvas.height);
-
-      // Optional: Add a subtle rounded corner stroke for aesthetics
-      ctx.beginPath();
-      ctx.roundRect(0, 0, canvas.width, canvas.height, 20);
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
 
     function calculateShadowOffsets(entityX, entityY, shadowDistance = 10) {
       const dx = entityX - centerX;
@@ -565,8 +527,8 @@
         document.documentElement.style.setProperty('--highlight-shadow-color', 'rgba(255, 255, 255, 0.7)');
         document.documentElement.style.setProperty('--drop-shadow-color', 'rgba(0, 0, 0, 0.3)');
       }
-      document.body.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color');
-      document.body.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-color');
+      document.body.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color').trim();
+      document.body.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
     }
 
     // Toggle Dev Option and update state
@@ -641,7 +603,7 @@
           player.size / 2
         );
         innerShadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        innerShadowGradient.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--inner-shadow-color'));
+        innerShadowGradient.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--inner-shadow-color').trim());
 
         ctx.globalCompositeOperation = 'source-atop';
         ctx.fillStyle = innerShadowGradient;
@@ -1478,20 +1440,7 @@
       );
     }
 
-    function isEnteringRamp(ramp, newX, newY, obstacle) {
-      const rampBuffer = 20;
-      switch (ramp) {
-        case 'top': return newY + player.size / 2 <= obstacle.y + rampBuffer;
-        case 'bottom': return newY - player.size / 2 >= obstacle.y + obstacle.height - rampBuffer;
-        case 'left': return newX + player.size / 2 <= obstacle.x + rampBuffer;
-        case 'right': return newX - player.size / 2 >= obstacle.x + obstacle.width - rampBuffer;
-        default: return false;
-      }
-    }
 
-    function isNearEdge(pos, min, size) {
-      return pos <= min || pos >= min + size;
-    }
 
 
 
@@ -1647,7 +1596,7 @@
       let arrowColor;
       if (distance < colorTransitionDistance) {
         // Match the obstacle's color when player is near the ramp
-        arrowColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color');
+        arrowColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color').trim();
       } else {
         // Default arrow color
         arrowColor = isDarkMode ? 'rgba(100, 100, 100, 0.9)' : 'rgba(255, 255, 255, 0.9)';
@@ -1833,7 +1782,7 @@
       ctx.translate(translateX, translateY);
 
       // Draw the background first
-      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-color');
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-color').trim();
       ctx.fillRect(-translateX, -translateY, canvas.width, canvas.height);
 
       // Draw the vignette and punch-through effects first
