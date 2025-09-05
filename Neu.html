@@ -326,12 +326,12 @@
     const darkModeButton = document.getElementById('darkModeButton');
     const gameOverText = document.getElementById('gameOverText');
     const canvas = document.getElementById('gameCanvas');
+    const devOption1 = document.getElementById('devOption1');
+    const devOption2 = document.getElementById('devOption2');
     const devOption1Play = document.getElementById('devOption1Play');
     const devOption2Play = document.getElementById('devOption2Play');
     const colorPicker = document.getElementById('colorPicker');
-    const colorRing = document.getElementById('colorRing');
 
-    let firstButtonPress_ = false;
     let isDragging = false;
     let lastTime_ = performance.now();
     let ctx; // Declare ctx here
@@ -342,10 +342,13 @@
       speed: 2,
       morphed: false,
       morphSpeed: 4,
-      color: '#FFF0B3'  // Default initial color
+      color: '#FFF0B3',  // Default initial color
+      velocityX: 0,
+      velocityY: 0
     };
     let enemies = [];
-    let projectiles;
+    let projectiles = [];
+    let enemyProjectiles = [];
     let keys = {};
     let morphToggled = false;
     let gameRunning = false;
@@ -371,8 +374,7 @@
     const vignetteSmoothness = 0.09; // Adjust this value for smoothness
 
     let reloadCircle = {
-      active: false,
-      angle: 0  // Angle of rotation around the player
+      active: false
     };
 
     let flashOnce = false;
@@ -390,6 +392,17 @@
 
     // Reference the existing color circle instead of creating a new one
     const colorCircle = document.getElementById('color-circle');
+
+    // Sync color picker to initial player color
+    function syncColorPicker() {
+      // Set the circle background to match player color
+      colorCircle.style.backgroundColor = player.color;
+      // Position the circle based on the color (simplified approach)
+      colorCircle.style.left = '100px'; // Default position
+    }
+
+    // Call sync on load
+    syncColorPicker();
 
 
     colorCircle.addEventListener('mousedown', (e) => {
@@ -469,44 +482,7 @@
 
 
 
-    function drawInnerShadow() {
-      const shadowSize = 30; // Thickness of the shadow
 
-      // Top Shadow
-      let gradient = ctx.createLinearGradient(0, 0, 0, shadowSize);
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, shadowSize);
-
-      // Bottom Shadow
-      gradient = ctx.createLinearGradient(0, canvas.height - shadowSize, 0, canvas.height);
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, canvas.height - shadowSize, canvas.width, shadowSize);
-
-      // Left Shadow
-      gradient = ctx.createLinearGradient(0, 0, shadowSize, 0);
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, shadowSize, canvas.height);
-
-      // Right Shadow
-      gradient = ctx.createLinearGradient(canvas.width - shadowSize, 0, canvas.width, 0);
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(canvas.width - shadowSize, 0, shadowSize, canvas.height);
-
-      // Optional: Add a subtle rounded corner stroke for aesthetics
-      ctx.beginPath();
-      ctx.roundRect(0, 0, canvas.width, canvas.height, 20);
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
 
     function calculateShadowOffsets(entityX, entityY, shadowDistance = 10) {
       const dx = entityX - centerX;
@@ -551,8 +527,8 @@
         document.documentElement.style.setProperty('--highlight-shadow-color', 'rgba(255, 255, 255, 0.7)');
         document.documentElement.style.setProperty('--drop-shadow-color', 'rgba(0, 0, 0, 0.3)');
       }
-      document.body.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color');
-      document.body.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-color');
+      document.body.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color').trim();
+      document.body.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
     }
 
     // Toggle Dev Option and update state
@@ -627,7 +603,7 @@
           player.size / 2
         );
         innerShadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        innerShadowGradient.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--inner-shadow-color'));
+        innerShadowGradient.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--inner-shadow-color').trim());
 
         ctx.globalCompositeOperation = 'source-atop';
         ctx.fillStyle = innerShadowGradient;
@@ -718,17 +694,11 @@
     window.addEventListener('keydown', e => {
       keys[e.key.toLowerCase()] = true;
 
-      if (firstButtonPress_ == true && gameRunning == true) {
-        respawnEnemy();
-        respawnEnemy();
-        firstButtonPress_ = false;
-      }
-
-
       if (e.key.toLowerCase() === 'e') {
         spawnObstacleBelowPlayer();
       }
-      if (e.key === ' ') {
+      if (e.code === 'Space') {
+        e.preventDefault();
         toggleMorph();  // Trigger morph on space bar press
       }
     });
@@ -774,12 +744,25 @@
 
 
 
-    function invertColor(rgb) {
-      // Extract the RGB values from the "rgb(r, g, b)" string
-      let rgbValues = rgb.match(/\d+/g).map(Number);
-      let r = rgbValues[0];
-      let g = rgbValues[1];
-      let b = rgbValues[2];
+    function invertColor(color) {
+      let r, g, b;
+      
+      if (color.startsWith('#')) {
+        // Handle hex format
+        let bigint = parseInt(color.slice(1), 16);
+        r = (bigint >> 16) & 255;
+        g = (bigint >> 8) & 255;
+        b = bigint & 255;
+      } else if (color.startsWith('rgb(')) {
+        // Handle rgb format
+        let rgbValues = color.match(/\d+/g).map(Number);
+        r = rgbValues[0];
+        g = rgbValues[1];
+        b = rgbValues[2];
+      } else {
+        // Fallback
+        return 'rgb(255, 255, 255)';
+      }
 
       // Invert each color channel
       r = 255 - r;
@@ -913,10 +896,13 @@
     }
 
     function moveProjectiles() {
-      projectiles.forEach((p, index) => {
+      for (let index = projectiles.length - 1; index >= 0; index--) {
+        let p = projectiles[index];
         let dx = p.targetX - p.x;
         let dy = p.targetY - p.y;
         let distance = Math.hypot(dx, dy);
+
+        if (distance === 0) continue; // Guard against zero distance to prevent NaN
 
         // Move the projectile in a straight line toward the original target
         p.x += (dx / distance) * p.speed;
@@ -930,22 +916,22 @@
         if (hitObstacle) {
           // Remove the projectile if it hits an obstacle
           projectiles.splice(index, 1);
-          return;  // Skip further checks, as the projectile is already removed
+          continue;  // Skip further checks, as the projectile is already removed
         }
 
         // Check if the projectile has reached its original target
         if (Math.hypot(p.targetX - p.x, p.targetY - p.y) < 5) {
           // Remove the projectile if it's very close to the original target and didn't hit anything
           projectiles.splice(index, 1);
-          return;  // Skip further checks, as the projectile is already removed
+          continue;  // Skip further checks, as the projectile is already removed
         }
 
         // Remove the projectile if it goes off the canvas
         if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) {
           projectiles.splice(index, 1);  // Remove projectile if it leaves the canvas
-          return;
+          continue;
         }
-      });
+      }
     }
 
 
@@ -1050,8 +1036,10 @@
 
     function checkCollisions() {
       // Check collision between projectiles and enemies
-      enemies.forEach((enemy, index) => {
-        projectiles.forEach((p, pIndex) => {
+      for (let index = enemies.length - 1; index >= 0; index--) {
+        let enemy = enemies[index];
+        for (let pIndex = projectiles.length - 1; pIndex >= 0; pIndex--) {
+          let p = projectiles[pIndex];
           let dx = p.x - enemy.x;
           let dy = p.y - enemy.y;
           let distance = Math.hypot(dx, dy);
@@ -1069,10 +1057,10 @@
             // Set the flag to trigger the reload bar flash
             shouldFlashReloadBar = true;
             flashStartTime = performance.now(); // Start the flash timer
+            break; // Break from projectile loop since enemy is removed
           }
-        });
-      });
-
+        }
+      }
 
       // Check enemy-to-enemy collisions (handle separately)
       for (let i = 0; i < enemies.length; i++) {
@@ -1109,10 +1097,13 @@
     function spawnObstacleBelowPlayer() {
       const obstacleSize = player.size * 3;
 
-      // Check if we already have 2 obstacles
-      if (obstacles.length >= 2) {
-        console.log("Maximum of 2 obstacles allowed.");
-        return; // Stop if we already have 2 obstacles
+      // Count only player-spawned obstacles (exclude pre-populated obstacles)
+      const playerSpawnedObstacles = obstacles.filter(obstacle => obstacle.playerSpawned).length;
+
+      // Check if we already have 2 player-spawned obstacles
+      if (playerSpawnedObstacles >= 2) {
+        console.log("Maximum of 2 player-spawned obstacles allowed.");
+        return; // Stop if we already have 2 player-spawned obstacles
       }
 
       // Check if the new obstacle would overlap with any existing obstacles
@@ -1131,7 +1122,8 @@
           width: obstacleSize,
           height: obstacleSize,
           radius: 15,
-          ramp: 'top' // Adjust the ramp direction as needed
+          ramp: 'top', // Adjust the ramp direction as needed
+          playerSpawned: true // Mark as player-spawned
         };
 
         obstacles.push(newObstacle);
@@ -1281,10 +1273,13 @@
     }
 
     function moveEnemyProjectiles() {
-      enemyProjectiles.forEach((p, index) => {
+      for (let index = enemyProjectiles.length - 1; index >= 0; index--) {
+        let p = enemyProjectiles[index];
         let dx = p.targetX - p.x;
         let dy = p.targetY - p.y;
         let distance = Math.hypot(dx, dy);
+
+        if (distance === 0) continue; // Guard against zero distance to prevent NaN
 
         // Move the projectile in a straight line toward the original target
         p.x += (dx / distance) * p.speed;
@@ -1295,7 +1290,7 @@
         if (playerDistance < player.size / 2) {
           enemyProjectiles.splice(index, 1);
           endGame();  // Player hit
-          return;
+          continue;
         }
 
         // Check if the projectile hits an obstacle
@@ -1305,43 +1300,32 @@
         });
         if (hitObstacle) {
           enemyProjectiles.splice(index, 1);  // Remove the projectile
-          return;
+          continue;
         }
 
         // Check if the projectile has reached its original target
         if (Math.hypot(p.targetX - p.x, p.targetY - p.y) < 5) {
           enemyProjectiles.splice(index, 1);  // Remove the projectile
-          return;
+          continue;
         }
 
         // Remove the projectile if it goes off the canvas
         if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) {
           enemyProjectiles.splice(index, 1);
-          return;
+          continue;
         }
-      });
+      }
     }
 
 
     function toggleMorph() {
-      if (!morphToggled && keys[' ']) {
-        player.morphed = !player.morphed;
-        morphToggled = true;  // Set to true so we don't toggle again on the same key press
-
-        // Set target opacity based on the morph state
-        if (!player.morphed) {
-          targetOpacity_ = 0.4;  // Fade out the vignette when morphed
-        } else {
-          targetOpacity_ = 1.0;  // Fade back in the vignette when not morphed
-        }
+      player.morphed = !player.morphed;
+      
+      // Set target opacity based on the morph state
+      if (player.morphed) {
+        targetOpacity_ = 0.4;  // Lower value when morphed
       } else {
-        morphToggled = false;
-        player.morphed = !player.morphed;
-        if (!player.morphed) {
-          targetOpacity_ = 0.4;  // Fade out the vignette when morphed
-        } else {
-          targetOpacity_ = 1.0;  // Fade back in the vignette when not morphed
-        }
+        targetOpacity_ = 1.0;  // Higher value when not morphed
       }
     }
 
@@ -1456,20 +1440,7 @@
       );
     }
 
-    function isEnteringRamp(ramp, newX, newY, obstacle) {
-      const rampBuffer = 20;
-      switch (ramp) {
-        case 'top': return newY + player.size / 2 <= obstacle.y + rampBuffer;
-        case 'bottom': return newY - player.size / 2 >= obstacle.y + obstacle.height - rampBuffer;
-        case 'left': return newX + player.size / 2 <= obstacle.x + rampBuffer;
-        case 'right': return newX - player.size / 2 >= obstacle.x + obstacle.width - rampBuffer;
-        default: return false;
-      }
-    }
 
-    function isNearEdge(pos, min, size) {
-      return pos <= min || pos >= min + size;
-    }
 
 
 
@@ -1598,19 +1569,19 @@
       if (obstacle.ramp === 'top') {
         arrowX = obstacle.x + obstacle.width / 2; // Center horizontally
         arrowY = obstacle.y - rampOffset;         // Slightly above the obstacle
-        arrowAngle = -Math.PI;                    // Rotate to point upwards
+        arrowAngle = -Math.PI / 2;                // Rotate to point upwards
       } else if (obstacle.ramp === 'bottom') {
         arrowX = obstacle.x + obstacle.width / 2; // Center horizontally
         arrowY = obstacle.y + obstacle.height + rampOffset; // Slightly below the obstacle
-        arrowAngle = 0;                           // Rotate to point downwards
+        arrowAngle = Math.PI / 2;                 // Rotate to point downwards
       } else if (obstacle.ramp === 'left') {
         arrowX = obstacle.x - rampOffset;         // Slightly to the left of the obstacle
         arrowY = obstacle.y + obstacle.height / 2; // Center vertically
-        arrowAngle = Math.PI / 2;                 // Rotate to point left
+        arrowAngle = Math.PI;                     // Rotate to point left
       } else if (obstacle.ramp === 'right') {
         arrowX = obstacle.x + obstacle.width + rampOffset; // Slightly to the right
         arrowY = obstacle.y + obstacle.height / 2;         // Center vertically
-        arrowAngle = -Math.PI / 2;              // Rotate to point right
+        arrowAngle = 0;                           // Rotate to point right
       }
 
       // Calculate the distance between the player and the ramp
@@ -1625,7 +1596,7 @@
       let arrowColor;
       if (distance < colorTransitionDistance) {
         // Match the obstacle's color when player is near the ramp
-        arrowColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color');
+        arrowColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color').trim();
       } else {
         // Default arrow color
         arrowColor = isDarkMode ? 'rgba(100, 100, 100, 0.9)' : 'rgba(255, 255, 255, 0.9)';
@@ -1811,7 +1782,7 @@
       ctx.translate(translateX, translateY);
 
       // Draw the background first
-      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-color');
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-color').trim();
       ctx.fillRect(-translateX, -translateY, canvas.width, canvas.height);
 
       // Draw the vignette and punch-through effects first
@@ -1898,7 +1869,7 @@
     }
 
     function drawVignette() {
-      // Fix the vignette center at the center of the screen
+      // Fix the vignette center at the center of the screen in screen space
       const vignetteCenterX = canvas.width / 2;
       const vignetteCenterY = canvas.height / 2;
 
@@ -1908,6 +1879,12 @@
       // Define the vignette radius and opacity based on the player's morph state
       let innerRadius = player.morphed ? 50 : 150;
       let outerOpacity = player.morphed ? vignetteOpacity_ : vignetteOpacity_;
+
+      // Save the context state to reset transformation
+      ctx.save();
+      
+      // Reset transformation to draw vignette in screen space
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
 
       // Create a radial gradient for the vignette effect
       let gradient = ctx.createRadialGradient(
@@ -1927,10 +1904,16 @@
       // Define the player's light source radius based on morph state
       let playerLightRadius = player.morphed ? 50 : 100; // Smaller light when morphed
 
+      // Get player position in screen space
+      const translateX = centerX - cameraX;
+      const translateY = centerY - cameraY;
+      const playerScreenX = player.x + translateX;
+      const playerScreenY = player.y + translateY;
+
       // Subtract vignette intensity around the player
       let playerLight = ctx.createRadialGradient(
-        player.x, player.y, 0,
-        player.x, player.y, playerLightRadius  // Adjust size of the player's light source
+        playerScreenX, playerScreenY, 0,
+        playerScreenX, playerScreenY, playerLightRadius
       );
       playerLight.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
       playerLight.addColorStop(1, 'rgba(0, 0, 0, 0)');
@@ -1938,38 +1921,42 @@
       // Apply the player's local light to punch through the vignette
       ctx.globalCompositeOperation = 'destination-out';
       ctx.fillStyle = playerLight;
-      ctx.fillRect(player.x - playerLightRadius, player.y - playerLightRadius, playerLightRadius * 2, playerLightRadius * 2);
+      ctx.fillRect(playerScreenX - playerLightRadius, playerScreenY - playerLightRadius, playerLightRadius * 2, playerLightRadius * 2);
 
       // Now handle the particles as additional local light sources
       playerParticles.forEach(particle => {
+        // Calculate particle position in screen space
+        const particleScreenX = particle.x + translateX;
+        const particleScreenY = particle.y + translateY;
+        
         // Calculate distance from the center of the vignette
-        let distanceToCenter = Math.hypot(particle.x - vignetteCenterX, particle.y - vignetteCenterY);
+        let distanceToCenter = Math.hypot(particleScreenX - vignetteCenterX, particleScreenY - vignetteCenterY);
         let maxDistance = Math.hypot(canvas.width / 2, canvas.height / 2);
 
         // Adjust opacity based on distance from the center
         let opacity = Math.max(0, 1 - (distanceToCenter / maxDistance));
 
         let particleLight = ctx.createRadialGradient(
-          particle.x, particle.y, 0,
-          particle.x, particle.y, 50  // Adjust size of particle light source
+          particleScreenX, particleScreenY, 0,
+          particleScreenX, particleScreenY, 50  // Adjust size of particle light source
         );
 
         particleLight.addColorStop(0, `rgba(255, 255, 255, ${opacity * 0.5})`);  // Opacity scales with distance
         particleLight.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
         ctx.fillStyle = particleLight;
-        ctx.fillRect(particle.x - 50, particle.y - 50, 100, 100);  // Light area around particles
+        ctx.fillRect(particleScreenX - 50, particleScreenY - 50, 100, 100);  // Light area around particles
       });
 
       // Reset the composite operation to default
       ctx.globalCompositeOperation = 'source-over';
+      
+      // Restore the transformation
+      ctx.restore();
     }
 
 
-    // Lerp function for smooth transitions
-    function lerp(start, end, amt) {
-      return start * (1 - amt) + end * amt;
-    }
+
 
 
 
@@ -2043,7 +2030,6 @@
 
     function initializeGame() {
       console.log("Initializing game...");
-      firstButtonPress_ = true;
       gameOverText.style.display = 'none';  // Hide the game over text initially
       canvas.style.display = 'block';  // Ensure canvas is visible
 
@@ -2056,7 +2042,9 @@
         speed: 2,
         morphed: false,
         morphSpeed: 4,
-        color: player.color  // Use existing player color from the picker
+        color: player.color,  // Use existing player color from the picker
+        velocityX: 0,
+        velocityY: 0
       };
 
       enemies = [];
